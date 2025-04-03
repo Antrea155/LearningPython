@@ -3,7 +3,7 @@ from kaggle.api.kaggle_api_extended import KaggleApi  # Import Kaggle API class 
 import os
 import pandas as pd
 import tkinter as tk #GUI library
-from tkinter import filedialog, messagebox
+from tkinter import ttk, filedialog, messagebox
 import pdb
 
 def submit():
@@ -15,8 +15,13 @@ def submit():
         os.environ["KAGGLE_KEY"] = key
         # Validate Kaggle credentials
         try:
-            api = KaggleApi()
-            api.authenticate()
+            try:
+                api = KaggleApi()
+                api.authenticate()
+            except Exception as e:
+                messagebox.showwarning("Invalid Credentials", f"The credentials you entered are invalid: {e}")
+                return
+            
             #Authentication is successful, proceed with dataset download
             pathstr = Path_entry.get()
             try:
@@ -27,9 +32,8 @@ def submit():
 
                 # Check if the CSV file exists
                 if os.path.exists(csv_file):
-                    df = pd.read_csv(csv_file)           
-                    # Display the first few rows
-                    print(df.head())
+                    dataset = pd.read_csv(csv_file)           
+                    open_dataset_window(dataset)
                 else:
                     messagebox.showwarning("File Error", "CSV file not found in the dataset directory.")
 
@@ -41,6 +45,26 @@ def submit():
 
     else:
         messagebox.showwarning("Input Error", "Please check your credentials")
+
+def open_dataset_window(dataset):
+    new_window = tk.Toplevel(root)
+    new_window.title("Dataset")
+
+    tree = ttk.Treeview(new_window)
+    #expand=True: makes the widget expand to fill any extra space in new_window.
+    #fill=tk.BOTH: makes the widget expand both horizontally and vertically within the new_window.
+    tree.pack(expand=True, fill=tk.BOTH, padx=10, pady=10)
+
+    tree["columns"] = list(dataset.columns)
+    tree["show"] = "headings"  # show only the column headings as the first row, hine index row
+
+    for col in dataset.columns:
+        tree.heading(col, text=col)
+
+    for row, data in dataset.iterrows():
+        tree.insert("", "end", values=list(data))
+
+    new_window.geometry("800x600")
 
 #csv format to extract details info
 #username,...
@@ -55,13 +79,13 @@ def MatchInfo(token, string):
     global name, key, path, csv
     match token:
         case "username":
-            name = string
+            name = string.strip()
         case "key":
-            key = string
+            key = string.strip()
         case "path":
-            path = string
+            path = string.strip()
         case "csv":
-            csv = string
+            csv = string.strip()
 
 def LoadDetails():
     file_path = filedialog.askopenfilename(filetypes=[("Text Files", "*.txt")])  # Open file dialog
@@ -89,7 +113,7 @@ def LoadDetails():
 
 # Create the main window
 root = tk.Tk()
-root.title("Graphics Cards Dataset")
+root.title("Enter your details:")
 root.geometry("300x250") 
 
 # Username label
